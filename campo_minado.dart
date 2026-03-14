@@ -154,3 +154,103 @@ class CampoMinado {
       }
     }
   }
+  
+  void tentarChord(int linha, int coluna) {
+    // Conta quantas bandeiras existem ao redor
+    int bandeirasAoRedor = 0;
+    for (int i = -1; i <= 1; i++) {
+      for (int j = -1; j <= 1; j++) {
+        int checkLinha = linha + i;
+        int checkColuna = coluna + j;
+        
+        if (checkLinha >= 0 && checkLinha < tamanho && 
+            checkColuna >= 0 && checkColuna < tamanho &&
+            bandeiras[checkLinha][checkColuna]) {
+          bandeirasAoRedor++;
+        }
+      }
+    }
+    
+    // Se o número de bandeiras é igual ao número da célula, revela as outras
+    if (bandeirasAoRedor == contagem[linha][coluna]) {
+      print('Chord! Revelando células ao redor...');
+      for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+          int revelarLinha = linha + i;
+          int revelarColuna = coluna + j;
+          
+          if (revelarLinha >= 0 && revelarLinha < tamanho && 
+              revelarColuna >= 0 && revelarColuna < tamanho &&
+              !revelado[revelarLinha][revelarColuna] &&
+              !bandeiras[revelarLinha][revelarColuna]) {
+            revelar(revelarLinha, revelarColuna);
+          }
+        }
+      }
+    } else {
+      print('Marque ${contagem[linha][coluna]} bandeiras ao redor primeiro (atual: $bandeirasAoRedor)');
+    }
+  }
+  
+  void mostrarTabuleiro({bool mostrarMinas = false}) {
+    print('\n    ' + List.generate(tamanho, (i) => i.toString().padLeft(3)).join(''));
+    print('   ' + '-' * (tamanho * 3 + 1));
+    
+    for (int i = 0; i < tamanho; i++) {
+      stdout.write(i.toString().padLeft(2) + '  |');
+      for (int j = 0; j < tamanho; j++) {
+        if (bandeiras[i][j] && !revelado[i][j]) {
+          stdout.write(' 🚩');
+        } else if (revelado[i][j]) {
+          if (minas[i][j]) {
+            stdout.write(' 💣');
+          } else if (contagem[i][j] == 0) {
+            stdout.write('   ');
+          } else {
+            stdout.write(' ${contagem[i][j]} ');
+          }
+        } else if (mostrarMinas && minas[i][j]) {
+          stdout.write(' 💣');
+        } else {
+          stdout.write(' ⬛');
+        }
+      }
+      print(' |');
+    }
+    print('   ' + '-' * (tamanho * 3 + 1));
+  }
+  
+  bool verificarVitoria() {
+    for (int i = 0; i < tamanho; i++) {
+      for (int j = 0; j < tamanho; j++) {
+        if (!minas[i][j] && !revelado[i][j]) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  
+  void jogar() {
+    print('=== CAMPO MINADO ===');
+    print('Tabuleiro: ${tamanho}x$tamanho');
+    print('Minas: $numMinas');
+    print('\nComo jogar:');
+    print('- Para revelar: linha coluna (ex: 5 7)');
+    print('- Para marcar bandeira: b linha coluna (ex: b 5 7)');
+    print('- Clique em um número com bandeiras corretas para auto-revelar');
+    print('- Digite "sair" para encerrar');
+    print('\nPressione ENTER para começar...');
+    stdin.readLineSync();
+    
+    while (true) {
+      mostrarTabuleiro();
+      
+      stdout.write('\nSua jogada: ');
+      String? entrada = stdin.readLineSync();
+      
+      if (entrada == null || entrada.toLowerCase() == 'sair') {
+        print('\nJogo encerrado!');
+        mostrarTabuleiro(mostrarMinas: true);
+        break;
+      }
