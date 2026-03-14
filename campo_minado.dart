@@ -1,19 +1,25 @@
 import 'dart:io';
 import 'dart:math';
 
+// Classe principal do jogo Campo Minado
 class CampoMinado {
-  final int tamanho = 12;
-  final int numMinas = 20;
-  late List<List<bool>> minas;
-  late List<List<bool>> revelado;
-  late List<List<bool>> bandeiras;
-  late List<List<int>> contagem;
-  bool primeiraJogada = true;
+  // Configurações do jogo
+  final int tamanho = 12; // Tamanho do tabuleiro (12x12)
+  final int numMinas = 20; // Número de minas no campo
   
+  // Matrizes para controlar o estado do jogo
+  late List<List<bool>> minas; // Onde estão as minas
+  late List<List<bool>> revelado; // Quais células foram reveladas
+  late List<List<bool>> bandeiras; // Onde o jogador marcou bandeiras
+  late List<List<int>> contagem; // Número de minas ao redor de cada célula
+  bool primeiraJogada = true; // Controla se é a primeira jogada
+  
+  // Construtor - inicializa o jogo
   CampoMinado() {
     inicializar();
   }
   
+  // Inicializa todas as matrizes do jogo
   void inicializar() {
     minas = List.generate(tamanho, (_) => List.filled(tamanho, false));
     revelado = List.generate(tamanho, (_) => List.filled(tamanho, false));
@@ -22,21 +28,24 @@ class CampoMinado {
     primeiraJogada = true;
   }
   
+  // Coloca as minas aleatoriamente no tabuleiro
   void colocarMinas({int? linhaSegura, int? colunaSegura}) {
     Random random = Random();
     int minasColocadas = 0;
     
+    // Continua até colocar todas as minas
     while (minasColocadas < numMinas) {
       int linha = random.nextInt(tamanho);
       int coluna = random.nextInt(tamanho);
       
-      // Não colocar mina apenas na célula clicada
+      // Não coloca mina na primeira célula clicada
       if (linhaSegura != null && colunaSegura != null) {
         if (linha == linhaSegura && coluna == colunaSegura) {
           continue;
         }
       }
       
+      // Se a posição ainda não tem mina, coloca uma
       if (!minas[linha][coluna]) {
         minas[linha][coluna] = true;
         minasColocadas++;
@@ -44,6 +53,7 @@ class CampoMinado {
     }
   }
   
+  // Calcula quantas minas existem ao redor de cada célula
   void calcularContagem() {
     for (int i = 0; i < tamanho; i++) {
       for (int j = 0; j < tamanho; j++) {
@@ -54,13 +64,16 @@ class CampoMinado {
     }
   }
   
+  // Conta quantas minas existem nas 8 células ao redor
   int contarMinasAoRedor(int linha, int coluna) {
     int count = 0;
+    // Verifica as 8 células ao redor (3x3 - 1)
     for (int i = -1; i <= 1; i++) {
       for (int j = -1; j <= 1; j++) {
         int novaLinha = linha + i;
         int novaColuna = coluna + j;
         
+        // Verifica se está dentro do tabuleiro e se tem mina
         if (novaLinha >= 0 && novaLinha < tamanho && 
             novaColuna >= 0 && novaColuna < tamanho &&
             minas[novaLinha][novaColuna]) {
@@ -71,17 +84,22 @@ class CampoMinado {
     return count;
   }
   
+  // Revela uma célula e expande automaticamente se for vazia
   void revelar(int linha, int coluna) {
+    // Verifica se está dentro dos limites
     if (linha < 0 || linha >= tamanho || coluna < 0 || coluna >= tamanho) {
       return;
     }
     
+    // Se já foi revelada, não faz nada
     if (revelado[linha][coluna]) {
       return;
     }
     
+    // Marca como revelada
     revelado[linha][coluna] = true;
     
+    // Se não tem minas ao redor, revela as células adjacentes automaticamente
     if (contagem[linha][coluna] == 0 && !minas[linha][coluna]) {
       for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
@@ -91,13 +109,14 @@ class CampoMinado {
     }
   }
   
+  // Revela uma área 5x5 na primeira jogada para dar um espaço inicial
   void revelarPrimeiraJogada(int linha, int coluna) {
-    // Revela uma área 5x5 centrada no clique inicial
     for (int i = -2; i <= 2; i++) {
       for (int j = -2; j <= 2; j++) {
         int novaLinha = linha + i;
         int novaColuna = coluna + j;
         
+        // Verifica se está dentro do tabuleiro
         if (novaLinha >= 0 && novaLinha < tamanho && 
             novaColuna >= 0 && novaColuna < tamanho) {
           revelado[novaLinha][novaColuna] = true;
@@ -106,6 +125,7 @@ class CampoMinado {
     }
   }
   
+  // Verifica se pode auto-revelar células após marcar uma bandeira
   void verificarAutoReveal(int linha, int coluna) {
     // Verifica todas as células ao redor da bandeira marcada
     for (int i = -1; i <= 1; i++) {
@@ -113,6 +133,7 @@ class CampoMinado {
         int vizinhoLinha = linha + i;
         int vizinhoColuna = coluna + j;
         
+        // Se o vizinho está revelado e tem um número
         if (vizinhoLinha >= 0 && vizinhoLinha < tamanho && 
             vizinhoColuna >= 0 && vizinhoColuna < tamanho &&
             revelado[vizinhoLinha][vizinhoColuna] &&
@@ -133,7 +154,7 @@ class CampoMinado {
             }
           }
           
-          // Se o número de bandeiras é igual ao número da célula, revela as outras
+          // Se o número de bandeiras bate com o número da célula, revela as outras
           if (bandeirasAoRedor == contagem[vizinhoLinha][vizinhoColuna]) {
             print('Auto-revelando células ao redor de [$vizinhoLinha,$vizinhoColuna]');
             for (int x = -1; x <= 1; x++) {
@@ -141,6 +162,7 @@ class CampoMinado {
                 int revelarLinha = vizinhoLinha + x;
                 int revelarColuna = vizinhoColuna + y;
                 
+                // Revela células que não estão reveladas e não têm bandeira
                 if (revelarLinha >= 0 && revelarLinha < tamanho && 
                     revelarColuna >= 0 && revelarColuna < tamanho &&
                     !revelado[revelarLinha][revelarColuna] &&
@@ -155,6 +177,7 @@ class CampoMinado {
     }
   }
   
+  // Tenta fazer "chord" - clicar em um número para revelar células ao redor
   void tentarChord(int linha, int coluna) {
     // Conta quantas bandeiras existem ao redor
     int bandeirasAoRedor = 0;
@@ -171,7 +194,7 @@ class CampoMinado {
       }
     }
     
-    // Se o número de bandeiras é igual ao número da célula, revela as outras
+    // Se o número de bandeiras bate com o número da célula, revela as outras
     if (bandeirasAoRedor == contagem[linha][coluna]) {
       print('Chord! Revelando células ao redor...');
       for (int i = -1; i <= 1; i++) {
@@ -179,6 +202,7 @@ class CampoMinado {
           int revelarLinha = linha + i;
           int revelarColuna = coluna + j;
           
+          // Revela células que não estão reveladas e não têm bandeira
           if (revelarLinha >= 0 && revelarLinha < tamanho && 
               revelarColuna >= 0 && revelarColuna < tamanho &&
               !revelado[revelarLinha][revelarColuna] &&
@@ -192,25 +216,32 @@ class CampoMinado {
     }
   }
   
+  // Desenha o tabuleiro na tela
   void mostrarTabuleiro({bool mostrarMinas = false}) {
-    print('\n    ' + List.generate(tamanho, (i) => i.toString().padLeft(3)).join(''));
-    print('   ' + '-' * (tamanho * 3 + 1));
+    // Cabeçalho com números das colunas
+    print('\n     ' + List.generate(tamanho, (i) => i.toString().padLeft(3)).join(''));
+    print('    ' + '-' * (tamanho * 3 + 1));
     
+    // Desenha cada linha do tabuleiro
     for (int i = 0; i < tamanho; i++) {
       stdout.write(i.toString().padLeft(2) + '  |');
       for (int j = 0; j < tamanho; j++) {
+        // Mostra bandeira se tiver uma marcada
         if (bandeiras[i][j] && !revelado[i][j]) {
           stdout.write(' 🚩');
+        // Mostra o conteúdo se estiver revelado
         } else if (revelado[i][j]) {
           if (minas[i][j]) {
-            stdout.write(' 💣');
+            stdout.write(' 💣'); // Mina
           } else if (contagem[i][j] == 0) {
-            stdout.write('   ');
+            stdout.write('   '); // Vazio
           } else {
-            stdout.write(' ${contagem[i][j]} ');
+            stdout.write(' ${contagem[i][j]} '); // Número
           }
+        // Mostra minas no final do jogo
         } else if (mostrarMinas && minas[i][j]) {
           stdout.write(' 💣');
+        // Mostra célula não revelada
         } else {
           stdout.write(' ⬛');
         }
@@ -220,9 +251,11 @@ class CampoMinado {
     print('   ' + '-' * (tamanho * 3 + 1));
   }
   
+  // Verifica se o jogador ganhou (revelou todas as células sem minas)
   bool verificarVitoria() {
     for (int i = 0; i < tamanho; i++) {
       for (int j = 0; j < tamanho; j++) {
+        // Se tem uma célula sem mina que não foi revelada, ainda não ganhou
         if (!minas[i][j] && !revelado[i][j]) {
           return false;
         }
@@ -231,7 +264,9 @@ class CampoMinado {
     return true;
   }
   
+  // Loop principal do jogo
   void jogar() {
+    // Mostra instruções
     print('=== CAMPO MINADO ===');
     print('Tabuleiro: ${tamanho}x$tamanho');
     print('Minas: $numMinas');
@@ -243,12 +278,15 @@ class CampoMinado {
     print('\nPressione ENTER para começar...');
     stdin.readLineSync();
     
+    // Loop principal do jogo
     while (true) {
       mostrarTabuleiro();
       
+      // Lê a jogada do usuário
       stdout.write('\nSua jogada: ');
       String? entrada = stdin.readLineSync();
       
+      // Verifica se quer sair
       if (entrada == null || entrada.toLowerCase() == 'sair') {
         print('\nJogo encerrado!');
         mostrarTabuleiro(mostrarMinas: true);
